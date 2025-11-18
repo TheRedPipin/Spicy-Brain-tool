@@ -1,14 +1,12 @@
-const KEY = process.env.OPENROUTER_API_KEY || "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"
+const KEY = process.env.OPENROUTER_API_KEY
 const MODEL = process.env.OPENROUTER_MODEL || "openrouter/sherlock-dash-alpha"
 const PORT = process.env.PORT || 3000;
 
-import http from "http";
-// Warn at startup if the API key is missing
+import http from "http";
 if (!KEY) {
   console.warn('WARNING: OPENROUTER_API_KEY is not set. Requests to OpenRouter will fail with 401.\nSet the environment variable OPENROUTER_API_KEY or load it from a .env file.');
 }
 const server = http.createServer(async (req, res) => {
-  // CORS preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
@@ -31,8 +29,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const result = await generateTasks(prompt, depth);
-      // If generateTasks returns an object with an error property, map to 502/401 accordingly
+      const result = await generateTasks(prompt, depth);
       if (result && result.error) {
         const status = result.code === 401 ? 401 : 502;
         res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
@@ -48,7 +45,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Default response for other routes
   res.writeHead(200, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' });
   res.end('Hello World\n');
 });
@@ -77,8 +73,7 @@ function parseAssistantJson(text) {
   try {
     return JSON.parse(candidate);
   } catch (e) {
-    try {
-      // attempt to fix single quotes
+    try {
       const fixed = candidate.replace(/\n/g, ' ').replace(/'/g, '"');
       return JSON.parse(fixed);
     } catch (e2) {
@@ -110,17 +105,14 @@ async function generateTasks(taskPrompt, depth) {
 
   const data = await response.json();
 
-  if (!response.ok) {
-    // Try to return any structured error info from the remote API
+  if (!response.ok) {
     let remoteBody = data;
     try {
       const txt = JSON.stringify(data);
       remoteBody = txt;
     } catch (_) {}
     return { error: 'remote_api_error', message: `OpenRouter API returned ${response.status}`, code: response.status, remote: remoteBody };
-  }
-
-  // Try to extract the assistant content from common response shapes
+  }
   let content = null;
   if (Array.isArray(data.choices) && data.choices[0]) {
     const msg = data.choices[0].message;
@@ -140,8 +132,7 @@ async function generateTasks(taskPrompt, depth) {
   try {
     const tasks = parseAssistantJson(content);
     return tasks;
-  } catch (err) {
-    // return the raw data so the caller can inspect what the model sent
+  } catch (err) {
     return { error: 'parse_error', message: err.message, raw: content, rawResponse: data };
   }
 }
