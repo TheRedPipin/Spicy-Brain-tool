@@ -7,7 +7,6 @@ document.getElementById("submitBtn").onclick = async function() {
       body: JSON.stringify(payload)
     });
 
-    // Read text first so we can log raw responses on parse failure
     const text = await res.text();
     let result;
     try {
